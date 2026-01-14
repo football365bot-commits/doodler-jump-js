@@ -1,13 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // ===== Telegram Mini App Integration =====
+    if (window.Telegram?.WebApp) {
+        Telegram.WebApp.ready()
+        Telegram.WebApp.expand()
+    }
+    // =========================================
+
     const grid = document.querySelector('.grid')
     const doodler = document.createElement('div')
     let doodlerLeftSpace = 50
     let startPoint = 150
     let doodlerBottomSpace = startPoint
     let isGameOver = false
-
-    // let speed = 3
-    // const gravity = 0.9
 
     let platformCount = 5
     let platforms = []
@@ -20,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isGoingRight = false
     let score = 0
 
-
+    // Создание Doodler
     function createDoodle() {
         grid.appendChild(doodler)
         doodler.classList.add('doodler')
@@ -28,8 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
         doodler.style.left = doodlerLeftSpace + 'px'
         doodler.style.bottom = doodlerBottomSpace + 'px'
     }
-   
 
+    // Класс платформы
     class Platform {
         constructor(newPlatBottom) {
             this.bottom = newPlatBottom
@@ -41,10 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
             visual.style.left = this.left + 'px'
             visual.style.bottom = this.bottom + 'px'
             grid.appendChild(visual)
-
         }
     }
 
+    // Создание платформ
     function createPlatforms() {
         for (let i = 0; i < platformCount; i++) {
             let platGap = 600 / platformCount
@@ -54,12 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Движение платформ
     function movePlatforms() {
         if (doodlerBottomSpace > 200) {
             platforms.forEach(platform => {
                 platform.bottom -= 4
-                let visual = platform.visual
-                visual.style.bottom = platform.bottom + 'px'
+                platform.visual.style.bottom = platform.bottom + 'px'
 
                 if (platform.bottom < 10) {
                     let firstPlatform = platforms[0].visual
@@ -73,6 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Прыжок
     function jump() {
         clearInterval(downTimerId)
         isJumping = true
@@ -83,12 +88,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 fall()
                 isJumping = false
             }
-
         }, 30)
     }
 
+    // Падение
     function fall() {
-        
         isJumping = false
         clearInterval(upTimerId)
         downTimerId = setInterval(function() {
@@ -97,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (doodlerBottomSpace <= 0) {
                 gameOver()
             }
+
             platforms.forEach(platform => {
                 if (
                     (doodlerBottomSpace >= platform.bottom) &&
@@ -105,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     (doodlerLeftSpace <= (platform.left + 85)) &&
                     !isJumping
                 ) {
-                    console.log('landed')
                     startPoint = doodlerBottomSpace
                     jump()
                     isJumping = true
@@ -114,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 20)
     }
 
+    // Конец игры
     function gameOver() {
-        console.log('game over')
         isGameOver = true
         while (grid.firstChild) {
             grid.removeChild(grid.firstChild)
@@ -125,19 +129,9 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(downTimerId)
         clearInterval(leftTimerId)
         clearInterval(rightTimerId)
-
     }
 
-    function control(e) {
-        if (e.key === 'ArrowLeft') {
-            moveLeft()
-        } else if (e.key === 'ArrowRight') {
-            moveRight()
-        } else if (e.key === 'ArrowUp') {
-            moveStraight()
-        }
-    }
-
+    // Движение Doodler
     function moveLeft() {
         if (isGoingRight) {
             clearInterval(rightTimerId)
@@ -146,11 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
         isGoingLeft = true
         leftTimerId = setInterval(function () {
             if (doodlerLeftSpace >= 0) {
-              console.log('going left')
-              doodlerLeftSpace -=5
-               doodler.style.left = doodlerLeftSpace + 'px'
+                doodlerLeftSpace -= 5
+                doodler.style.left = doodlerLeftSpace + 'px'
             } else moveRight()
-        },20)
+        }, 20)
     }
 
     function moveRight() {
@@ -160,13 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         isGoingRight = true
         rightTimerId = setInterval(function () {
-            //changed to 313 to fit doodle image
             if (doodlerLeftSpace <= 313) {
-                console.log('going right')
-                doodlerLeftSpace +=5
+                doodlerLeftSpace += 5
                 doodler.style.left = doodlerLeftSpace + 'px'
             } else moveLeft()
-        },20)
+        }, 20)
     }
 
     function moveStraight() {
@@ -176,6 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearInterval(rightTimerId)
     }
 
+    // Старт игры
     function start() {
         if (!isGameOver) {
             createPlatforms()
@@ -183,9 +175,26 @@ document.addEventListener('DOMContentLoaded', () => {
             
             setInterval(movePlatforms, 30)
             jump(startPoint)
-            document.addEventListener('keyup', control)
+
+            // ===== Сенсорное управление: экран делим на 2 половины =====
+            grid.addEventListener('touchstart', (e) => {
+                const touchX = e.touches[0].clientX
+                const screenWidth = window.innerWidth
+
+                if (touchX < screenWidth / 2) {
+                    moveLeft()
+                } else {
+                    moveRight()
+                }
+            })
+
+            grid.addEventListener('touchend', () => {
+                moveStraight() // остановка движения
+            })
+            // ==============================================================
         }
     }
-    // attach to button
+
+    // Запуск игры
     start()
 })
